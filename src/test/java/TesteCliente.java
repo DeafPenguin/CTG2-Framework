@@ -1,30 +1,32 @@
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
+import org.apache.http.HttpStatus;
 import org.hamcrest.core.IsEqual;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.when;
 import static org.hamcrest.Matchers.containsString;
 
 public class TesteCliente {
 
-    String enderecoAPICliente = "http://localhost:8080/";
-    String endpointCliente = "cliente/";
+    private static final String ENDERECO_CLIENTE = "http://localhost:8080/";
+    private static final String ENDPOINT_CLIENTE = "cliente/";
+    private static final String APAGA_TODOS_CLIENTES = "apagaTodos/";
+    private static final String LISTA_CLIENTES_VAZIA = "{}";
 
     @Test
     @DisplayName("Quando pegar todos os clientes sem cadastrar clientes, " +
             "então a lista deve estar vazia.")
-    public void pegaTodosClientes(){
+    public void listaTodosClientesComListaVazia(){
 
-        String respostaEsperada = "{}";
+        apagaTodosClientesDoServidor();
 
-        given()
-                .contentType(ContentType.JSON)
-        .when()
-                .get(enderecoAPICliente)
-        .then()
+        pegaTodosClientes()
                 .statusCode(200)
-                .assertThat().body(new IsEqual<>(respostaEsperada));
+                .body(new IsEqual<>(LISTA_CLIENTES_VAZIA));
     }
 
     @Test
@@ -44,7 +46,7 @@ public class TesteCliente {
                 .contentType(ContentType.JSON)
                 .body(clienteParaCadastrar)
         .when()
-                .post(enderecoAPICliente+endpointCliente)
+                .post(ENDERECO_CLIENTE+ ENDPOINT_CLIENTE)
         .then()
                 .statusCode(201)
                 .assertThat().body(containsString(respostaEsperada));
@@ -67,7 +69,7 @@ public class TesteCliente {
                 .contentType(ContentType.JSON)
                 .body(clienteParaAtualizar)
         .when()
-                .put(enderecoAPICliente+endpointCliente)
+                .put(ENDERECO_CLIENTE+ ENDPOINT_CLIENTE)
         .then()
                 .statusCode(200)
                 .assertThat().body(containsString(respostaEsperada));
@@ -84,9 +86,37 @@ public class TesteCliente {
         given()
                 .contentType(ContentType.JSON)
         .when()
-                .delete(enderecoAPICliente+endpointCliente+idClienteParaDeletar)
+                .delete(ENDERECO_CLIENTE+ ENDPOINT_CLIENTE +idClienteParaDeletar)
         .then()
                 .statusCode(200)
                 .assertThat().body(containsString(respostaEsperada));
+    }
+
+    /**
+     * Pega todos os clientes cadastrados na API
+     * @return lista com todos os clientes wrapped no tipo de resposta do restAssured
+     */
+    private ValidatableResponse pegaTodosClientes () {
+        return  given()
+                .contentType(ContentType.JSON)
+                .when()
+                .get(ENDERECO_CLIENTE)
+                .then();
+    }
+
+    /**
+     * Método de apoio para apagar todos os clientes do servidor.
+     * Usado para teste apenas.
+     * Incluindo como hook para rodar ao final de cada teste e deixar o servidor no mesmo estado em que estava antes.
+     * Chamado explicitamente em alguns testes também como preparação
+     */
+    @AfterEach
+    private void apagaTodosClientesDoServidor(){
+
+        when()
+                .delete(ENDERECO_CLIENTE + ENDPOINT_CLIENTE + APAGA_TODOS_CLIENTES)
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .assertThat().body(new IsEqual(LISTA_CLIENTES_VAZIA));
     }
 }
