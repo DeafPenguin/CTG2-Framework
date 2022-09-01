@@ -1,3 +1,6 @@
+/**
+ * Objeto simples (POJO) para guardar informações de clientes nos testes
+ */
 public class Cliente {
 
         private String nome;
